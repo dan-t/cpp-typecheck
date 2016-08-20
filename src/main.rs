@@ -28,33 +28,34 @@ fn main() {
         exit(1);
     }
 
-    let mut contents = String::new();
     let mut cmd_str: Option<String> = None;
+    {
+        let mut contents = String::new();
 
-    'loops:
-        for db_file in args {
-        let mut file = File::open(db_file).unwrap();
-        contents.clear();
-        file.read_to_string(&mut contents).unwrap();
+        'loops: for db_file in args {
+            let mut file = File::open(db_file).unwrap();
+            contents.clear();
+            file.read_to_string(&mut contents).unwrap();
 
-        let json_value: Value = serde_json::from_str(&contents).unwrap();
-        let objs = json_value.as_array().unwrap();
-        for obj in objs {
-            let obj = obj.as_object().unwrap();
+            let json_value: Value = serde_json::from_str(&contents).unwrap();
+            let objs = json_value.as_array().unwrap();
+            for obj in objs {
+                let obj = obj.as_object().unwrap();
 
-            let file = {
-                let f = PathBuf::from(obj.get("file").unwrap().as_str().unwrap());
-                if f.is_relative() {
-                    let dir = PathBuf::from(obj.get("directory").unwrap().as_str().unwrap());
-                    dir.join(f)
-                } else {
-                    f
+                let file = {
+                    let f = PathBuf::from(obj.get("file").unwrap().as_str().unwrap());
+                    if f.is_relative() {
+                        let dir = PathBuf::from(obj.get("directory").unwrap().as_str().unwrap());
+                        dir.join(f)
+                    } else {
+                        f
+                    }
+                };
+
+                if cpp_file == file {
+                    cmd_str = Some(String::from(obj.get("command").unwrap().as_str().unwrap()));
+                    break 'loops;
                 }
-            };
-
-            if cpp_file == file {
-                cmd_str = Some(String::from(obj.get("command").unwrap().as_str().unwrap()));
-                break 'loops;
             }
         }
     }
