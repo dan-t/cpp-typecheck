@@ -30,7 +30,7 @@ Another issue is, that these programs sometimes use [clang](http://clang.llvm.or
 for the type checking and not the compiler used in the database, which might
 give different warnings for the type checking and the building.
 
-`clang-typecheck` won't give the best results for on the fly type checking -
+`clang-typecheck` isn't the best fit for on the fly type checking -
 here the asynchronously solutions are more appropriate - it is meant for
 synchronous on demand type checking - by pressing some editor shortcut -
 with minimal hassle to configure.
