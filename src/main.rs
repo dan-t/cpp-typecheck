@@ -110,7 +110,8 @@ fn get_command_str(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<String> {
                 let cmd_str = String::from(try!(try!(obj.get("command")
                     .ok_or(CtError::from(format!("Couldn't find entry 'command' in json object: '{:?}'", obj))))
                     .as_str()
-                    .ok_or(CtError::from(format!("Couldn't get entry 'command' as str from json object: '{:?}'", obj)))));
+                    .ok_or(CtError::from(format!("Couldn't get entry 'command' as str from json object: '{:?}'", obj)))))
+                    .replace("\\", "");
 
                 try!(cache::write_command_str(cpp_file, &cmd_str));
                 return Ok(cmd_str);
@@ -139,12 +140,13 @@ fn build_command(cmd_str: &str) -> CtResult<Command> {
     }
 
     let mut cmd = Command::new(compiler);
+
     for p in parts {
         if p.is_empty() {
             continue;
         }
 
-        cmd.arg(p.replace("\\", ""));
+        cmd.arg(p);
     }
 
     cmd.arg("-fsyntax-only");
