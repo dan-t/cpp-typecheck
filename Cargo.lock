@@ -3,6 +3,7 @@ name = "clang-typecheck"
 version = "0.1.0"
 dependencies = [
  "error-type 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -19,6 +20,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "itoa"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "lazy_static"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
