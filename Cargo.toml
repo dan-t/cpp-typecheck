@@ -5,3 +5,4 @@ authors = ["Daniel Trstenjak <daniel.trstenjak@gmail.com>"]
 
 [dependencies]
 serde_json = "0.8.1"
+error-type = "0.1.2"
