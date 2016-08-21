@@ -8,19 +8,18 @@ extern crate error_type;
 #[macro_use]
 extern crate lazy_static;
 
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::io::Read;
 use std::io::{Write, stderr};
 use std::process::{Command, exit};
 use std::env::args;
 use std::path::{Path, PathBuf};
-use std::hash::{Hash, SipHasher, Hasher};
 use serde_json::Value;
 use ct_result::{CtResult, CtError};
-use dirs::cmd_cache_dir;
 
 mod ct_result;
 mod dirs;
+mod cache;
 
 fn main() {
     execute().unwrap_or_else(|err| {
@@ -69,7 +68,7 @@ fn execute() -> CtResult<()> {
 }
 
 fn get_command_str(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<String> {
-    if let Some(cmd_str) = try!(find_command_str_cache(cpp_file)) {
+    if let Some(cmd_str) = try!(cache::find_command_str(cpp_file)) {
         return Ok(cmd_str);
     }
 
@@ -113,7 +112,7 @@ fn get_command_str(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<String> {
                     .as_str()
                     .ok_or(CtError::from(format!("Couldn't get entry 'command' as str from json object: '{:?}'", obj)))));
 
-                try!(write_command_str_cache(cpp_file, &cmd_str));
+                try!(cache::write_command_str(cpp_file, &cmd_str));
                 return Ok(cmd_str);
             }
         }
@@ -150,41 +149,4 @@ fn build_command(cmd_str: &str) -> CtResult<Command> {
 
     cmd.arg("-fsyntax-only");
     Ok(cmd)
-}
-
-fn find_command_str_cache(cpp_file: &Path) -> CtResult<Option<String>> {
-    let cache_dir = try!(cmd_cache_dir());
-    let cache_file = cache_dir.join(compute_hash(cpp_file));
-    if ! cache_file.is_file() {
-        return Ok(None);
-    }
-
-    let mut file = try!(File::open(cache_file));
-    let mut cmd_str = String::new();
-    try!(file.read_to_string(&mut cmd_str));
-    return Ok(Some(cmd_str));
-}
-
-fn write_command_str_cache(cpp_file: &Path, cmd_str: &str) -> CtResult<()> {
-    let cache_dir = try!(cmd_cache_dir());
-    let cache_file = cache_dir.join(compute_hash(cpp_file));
-    if cache_file.is_file() {
-        return Ok(());
-    }
-
-    let mut file = try!(OpenOptions::new()
-        .create(true)
-        .truncate(true)
-        .read(true)
-        .write(true)
-        .open(cache_file));
-
-    let _ = try!(file.write_fmt(format_args!("{}", cmd_str)));
-    Ok(())
-}
-
-fn compute_hash(cpp_file: &Path) -> String {
-    let mut hasher = SipHasher::new();
-    cpp_file.hash(&mut hasher);
-    hasher.finish().to_string()
 }
