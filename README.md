@@ -87,3 +87,4 @@ the cache at `~/.clang_typecheck/cache/cmds` can be just cleared.
 Currently only the [gcc](https://gcc.gnu.org/) and [clang](http://clang.llvm.org/) compilers
 are supported, because to prevent the object file creation and only apply the type checking
 the flag `-fsyntax-only` is appended to the compiler command, which is known by both.
+
