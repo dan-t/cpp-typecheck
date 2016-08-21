@@ -8,18 +8,22 @@ extern crate error_type;
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate clap;
+
 use std::fs::File;
 use std::io::Read;
 use std::io::{Write, stderr};
 use std::process::{Command, exit};
-use std::env::args;
 use std::path::{Path, PathBuf};
 use serde_json::Value;
 use ct_result::{CtResult, CtError};
+use config::Config;
 
 mod ct_result;
 mod dirs;
 mod cache;
+mod config;
 
 fn main() {
     execute().unwrap_or_else(|err| {
@@ -29,36 +33,8 @@ fn main() {
 }
 
 fn execute() -> CtResult<()> {
-    let mut args = std::env::args();
-    args.next();
-
-    let cpp_file = {
-        let file = match args.next() {
-            Some(arg) => PathBuf::from(arg),
-            None      => return Err(CtError::from("Missing C++ source file argument!"))
-        };
-
-        if file.is_relative() {
-            return Err(CtError::from("C++ source file has to have an absolute path!"));
-        }
-
-        file
-    };
-
-    let db_files = {
-        let mut files = Vec::<PathBuf>::new();
-        for arg in args {
-            files.push(PathBuf::from(arg));
-        }
-
-        if files.is_empty() {
-            return Err(CtError::from("Missing clang compilation database argument!"));
-        }
-
-        files
-    };
-
-    let cmd_str = try!(get_command_str(&cpp_file, &db_files));
+    let config = try!(Config::from_command_args());
+    let cmd_str = try!(get_command_str(&config.cpp_file, &config.db_files));
     let mut cmd = try!(build_command(&cmd_str));
 
     try!(cmd.spawn()

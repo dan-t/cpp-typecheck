@@ -7,3 +7,4 @@ authors = ["Daniel Trstenjak <daniel.trstenjak@gmail.com>"]
 serde_json = "0.8.1"
 error-type = "0.1.2"
 lazy_static = "~0.2.1"
+clap = "~2.2.6"
