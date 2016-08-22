@@ -1,10 +1,10 @@
 [package]
-name = "clang-typecheck"
+name = "cpp-typecheck"
 version = "0.1.0"
 authors = ["Daniel Trstenjak <daniel.trstenjak@gmail.com>"]
 license = "BSD-3-Clause"
 description = "Type check a C++ source file with a clang compilation database"
-repository = "https://github.com/dan-t/clang-typecheck"
+repository = "https://github.com/dan-t/cpp-typecheck"
 readme = "README.md"
 
 [dependencies]

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use clap::{App, Arg};
 use ct_result::{CtResult, CtError};
 
-/// the configuration used to run `clang-typecheck`
+/// the configuration used to run `cpp-typecheck`
 #[derive(Debug)]
 pub struct Config {
     /// the C++ source file to type check
@@ -15,7 +15,7 @@ pub struct Config {
 
 impl Config {
    pub fn from_command_args() -> CtResult<Config> {
-       let matches = try!(App::new("clang-typecheck")
+       let matches = try!(App::new("cpp-typecheck")
            .about("Type check a C++ source file with a clang compilation database")
            .version(crate_version!())
            .author("Daniel Trstenjak <daniel.trstenjak@gmail.com>")

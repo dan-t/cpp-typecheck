@@ -1,5 +1,5 @@
 [root]
-name = "clang-typecheck"
+name = "cpp-typecheck"
 version = "0.1.0"
 dependencies = [
  "clap 2.2.6 (registry+https://github.com/rust-lang/crates.io-index)",

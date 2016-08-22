@@ -7,7 +7,7 @@ lazy_static! {
     static ref CMD_CACHE_DIR: CtResult<PathBuf> = {
         env::home_dir()
             .ok_or(CtError::from("Couldn't read home directory!"))
-            .map(|d| d.join(".clang_typecheck")
+            .map(|d| d.join(".cpp_typecheck")
                       .join("cache")
                       .join("cmds"))
     };
