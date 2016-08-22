@@ -60,15 +60,22 @@ The build binary will be located at `~/.cargo/bin/cpp-typecheck`.
 Usage
 -----
 
-Type checking a source file with a database:
+Type checking a source file:
 
-    $> cpp-typecheck  /absolute_path_to/SomeSource.cpp  path_to/compile_commands.json
+    $> cpp-typecheck  /absolute_path_to/SomeSource.cpp
 
-This will look up `SomeSource.cpp` in `compile_commands.json`, executes the
-compiler command and outputs the output of the compiler. 
+This will search for a database named `compile_commands.json` upwards the directory
+tree starting at the directory `/absolute_path_to/`. Then `SomeSource.cpp` is
+looked up in the database, the compiler command is executed and the compiler output
+is output.
 
 This makes it possible to use `cpp-typecheck` as a compiler replacement in editors
 that parse the output of the compiler and display the errors.
+
+If the database isn't reachable through the source file directory then the database
+has also to be given:
+
+    $> cpp-typecheck  /absolute_path_to/SomeSource.cpp  path_to/compile_commands.json
 
 Text Editor Integration
 -----------------------
