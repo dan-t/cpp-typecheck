@@ -15,7 +15,6 @@ use std::fs::File;
 use std::io::Read;
 use std::io::{Write, stderr};
 use std::process::exit;
-use std::path::{Path, PathBuf};
 use serde_json::Value;
 use ct_result::{CtResult, CtError};
 use config::Config;
@@ -35,19 +34,19 @@ fn main() {
 
 fn execute() -> CtResult<()> {
     let config = try!(Config::from_command_args());
-    let cmd = try!(get_cmd(&config.cpp_file, &config.db_files));
+    let cmd = try!(get_cmd(&config));
     try!(cmd.exec());
     Ok(())
 }
 
-fn get_cmd(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<Cmd> {
-    if let Some(cmd) = try!(Cmd::from_cache(cpp_file)) {
+fn get_cmd(config: &Config) -> CtResult<Cmd> {
+    if let Some(cmd) = try!(Cmd::from_cache(&config.cpp_file)) {
         return Ok(cmd);
     }
 
     let mut file_buffer = String::new();
 
-    for db_file in db_files {
+    for db_file in &config.db_files {
         let mut file = try!(File::open(db_file));
         file_buffer.clear();
         try!(file.read_to_string(&mut file_buffer));
@@ -62,12 +61,14 @@ fn get_cmd(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<Cmd> {
                 .ok_or(CtError::from(format!("Expected a json object but got: '{}'", obj))));
 
             let cmd = try!(Cmd::from_json_obj(obj));
-            if cmd.has_cpp_file(cpp_file) {
+            if cmd.has_cpp_file(&config.cpp_file) {
                 try!(cmd.write_to_cache());
                 return Ok(cmd);
             }
         }
     }
 
-    Err(CtError::from(format!("Couldn't find C++ source file '{:?}' in compilation databases '{:?}'!", cpp_file, db_files)))
+    Err(CtError::from(format!("Couldn't find C++ source file '{:?}' in compilation databases '{:?}'!",
+                              &config.cpp_file,
+                              &config.db_files)))
 }
