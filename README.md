@@ -83,8 +83,3 @@ that multiple type checks of the same source don't need to look up the command a
 in the database. Normally this shouldn't be an issue, because the commands in the database
 very rarely change in a way that affects type checking, but if there're problems, then
 the cache at `~/.cpp_typecheck/cache/cmds` can be just cleared.
-
-Currently only the [gcc](https://gcc.gnu.org/) and [clang](http://clang.llvm.org/) compilers
-are supported, because to prevent the object file creation and only apply the type checking
-the flag `-fsyntax-only` is appended to the compiler command, which is known by both.
-

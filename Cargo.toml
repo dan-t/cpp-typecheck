@@ -8,7 +8,7 @@ repository = "https://github.com/dan-t/cpp-typecheck"
 readme = "README.md"
 
 [dependencies]
-serde_json = "0.8.1"
-error-type = "0.1.2"
+serde_json = "~0.8.1"
+error-type = "~0.1.2"
 lazy_static = "~0.2.1"
 clap = "~2.2.6"
