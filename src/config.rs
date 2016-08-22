@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::fs;
 use clap::{App, Arg};
 use ct_result::{CtResult, CtError};
 
@@ -25,7 +26,6 @@ impl Config {
                .index(1))
            .arg(Arg::with_name("CLANG-DB")
                .help("The clang compilation database")
-               .required(true)
                .index(2)
                .multiple(true))
            .get_matches_safe());
@@ -33,15 +33,51 @@ impl Config {
        let cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE")
            .ok_or(CtError::from("Missing C++ source file!"))));
 
-        if cpp_file.is_relative() {
-            return Err(CtError::from("C++ source file has to have an absolute path!"));
-        }
+       if cpp_file.is_relative() {
+           return Err(CtError::from("C++ source file has to have an absolute path!"));
+       }
 
-       let db_files: Vec<PathBuf> = try!(matches.values_of("CLANG-DB")
-           .ok_or(CtError::from("Missing clang compilation database!")))
-           .map(PathBuf::from)
-           .collect();
+       let db_files: Vec<PathBuf> = {
+           if let Some(values) = matches.values_of("CLANG-DB") {
+               values.map(PathBuf::from).collect()
+           } else {
+               let dir = try!(cpp_file.parent()
+                   .ok_or(CtError::from(format!("Couldn't get directory of source file '{:?}'!",
+                                                cpp_file))));
+
+               vec![try!(find_db(&dir))]
+           }
+       };
+
+       if db_files.is_empty() {
+           return Err(CtError::from("Missing clang compilation database!"));
+       }
 
        Ok(Config { cpp_file: cpp_file, db_files: db_files })
    }
+}
+
+/// Searches for a `compile_commands.json` file starting at `start_dir` and continuing the search
+/// upwards the directory tree until the file is found.
+fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
+    let mut dir = start_dir.to_path_buf();
+    loop {
+        if let Ok(files) = fs::read_dir(&dir) {
+            for file in files {
+                if let Ok(file) = file {
+                    let path = file.path();
+                    if path.is_file() {
+                        if let Some("compile_commands.json") = path.file_name().and_then(|s| s.to_str()) {
+                            return Ok(path);
+                        }
+                    }
+                }
+            }
+        }
+
+        if ! dir.pop() {
+            return Err(CtError::from(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
+                                             start_dir.display())));
+        }
+    }
 }
