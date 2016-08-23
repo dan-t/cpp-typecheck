@@ -30,8 +30,8 @@ impl Config {
                .multiple(true))
            .get_matches_safe());
 
-       let cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE")
-           .ok_or(CtError::from("Missing C++ source file!"))));
+       let cpp_file = PathBuf::from(unwrap_or_err!(matches.value_of("SOURCE-FILE"),
+                                                   "Missing C++ source file!"));
 
        if cpp_file.is_relative() {
            return Err(CtError::from("C++ source file has to have an absolute path!"));
@@ -41,9 +41,8 @@ impl Config {
            if let Some(values) = matches.values_of("CLANG-DB") {
                values.map(PathBuf::from).collect()
            } else {
-               let dir = try!(cpp_file.parent()
-                   .ok_or(CtError::from(format!("Couldn't get directory of source file '{:?}'!",
-                                                cpp_file))));
+               let dir = unwrap_or_err!(cpp_file.parent(),
+                                        format!("Couldn't get directory of source file '{:?}'!", cpp_file));
 
                vec![try!(find_db(&dir))]
            }

@@ -20,7 +20,9 @@ use ct_result::{CtResult, CtError};
 use config::Config;
 use cmd::Cmd;
 
+#[macro_use]
 mod ct_result;
+
 mod dirs;
 mod config;
 mod cmd;
@@ -53,12 +55,12 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
 
         let json_value: Value = try!(serde_json::from_str(&file_buffer));
 
-        let objs = try!(json_value.as_array()
-            .ok_or(CtError::from(format!("Expected a json array but got: '{}'", json_value))));
+        let objs = unwrap_or_err!(json_value.as_array(),
+                                  format!("Expected a json array but got: '{}'", json_value));
 
         for obj in objs {
-            let obj = try!(obj.as_object()
-                .ok_or(CtError::from(format!("Expected a json object but got: '{}'", obj))));
+            let obj = unwrap_or_err!(obj.as_object(),
+                                     format!("Expected a json object but got: '{}'", obj));
 
             let cmd = try!(Cmd::from_json_obj(obj));
             if cmd.has_cpp_file(&config.cpp_file) {

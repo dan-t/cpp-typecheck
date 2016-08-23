@@ -18,3 +18,20 @@ error_type! {
         },
     }
 }
+
+macro_rules! unwrap_or_err {
+    ($opt:expr, $err:expr) => (match $opt {
+        Option::Some(val) => val,
+        Option::None      => {
+            return Result::Err(CtError::from($err))
+        }
+    })
+}
+
+macro_rules! true_or_err {
+    ($bool:expr, $err:expr) => (if $bool {} else { return Result::Err(CtError::from($err)) })
+}
+
+macro_rules! false_or_err {
+    ($bool:expr, $err:expr) => (if $bool { return Result::Err(CtError::from($err)) } else {})
+}
