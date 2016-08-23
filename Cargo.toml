@@ -1,6 +1,6 @@
 [package]
 name = "cpp-typecheck"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Daniel Trstenjak <daniel.trstenjak@gmail.com>"]
 license = "BSD-3-Clause"
 description = "Type check a C++ source file with a clang compilation database"
