@@ -22,14 +22,16 @@ contain a database named `compile_commands.json`.
 
 There're several programs operating with a database and also doing type
 checking, like [rtags](https://github.com/Andersbakken/rtags) or
-[YouComplete](https://github.com/Valloric/YouCompleteMe), but either - in the
+[YouCompleteMe](https://github.com/Valloric/YouCompleteMe), but either - in the
 case of rtags - they do the type checking asynchronously, which makes it harder
 to integrate into several editors or - in the case of YouCompleteMe - they feel
-quite a bit heavyweight, are harder to configure and slow done [vim](http://www.vim.org/) quite a bit.
+quite a bit heavyweight, are harder to configure and slow done my prefered editor
+[vim](http://www.vim.org/) quite a bit.
 
 Another issue is, that these programs sometimes use [clang](http://clang.llvm.org/)
 for the type checking and not the compiler used in the database, which might
-give different warnings for the type checking and the building.
+give different warnings for the type checking and the building, which sometimes
+isn't the desired behaviour.
 
 `cpp-typecheck` isn't the best fit for on the fly type checking -
 here the asynchronously solutions are more appropriate - it is meant for
@@ -42,7 +44,7 @@ Installation
 `cpp-typecheck` is build with [Rust](https://www.rust-lang.org/en-US/) so at least
 `rustc` and `cargo` are needed to build it.
 
-The easiest way to get both is by using `rustup`:
+The easiest way to get both is by using [rustup](https://www.rustup.rs/):
 
     $> curl https://sh.rustup.rs -sSf | sh
 
