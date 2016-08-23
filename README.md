@@ -6,18 +6,19 @@ cpp-typecheck
 
 A command line tool to type check a C++ source file with a [clang compilation database](http://clang.llvm.org/docs/JSONCompilationDatabase.html). 
 
+`cpp-typecheck` extracts the compiler command for the given source file
+from the database, executes it and outputs the output of the compiler.
+
+The design of `cpp-typecheck` was to get the most minimal program,
+that doesn't need any configuration, should just work and is easy to
+integrate into editors.
+
 The database contains the compiler commands - with all flags, defines and
 includes - of all source files of the project. The easiest way to get
 a database is for a [cmake](https://cmake.org/) build project by calling
 `cmake` with the option `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`. After the
 complete rebuild of the project the root of the build directory will
 contain a database named `compile_commands.json`.
-
-`cpp-typecheck` extracts the compiler command for the given source file
-from the database, executes it and outputs the output of the compiler.
-
-The design of `cpp-typecheck` was to get the most minimal program,
-that doesn't need any configuration and should just work.
 
 There're several programs operating with a database and also doing type
 checking, like [rtags](https://github.com/Andersbakken/rtags) or
