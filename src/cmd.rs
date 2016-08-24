@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::hash::{Hash, SipHasher, Hasher};
 use std::process::Command;
 use serde_json::{Value, Map};
-use ct_result::{CtResult, CtError};
+use ct_result::{CtResult, CtError, OrErr};
 use dirs::cmd_cache_dir;
 
 /// a compiler command from the clang compilation database
@@ -33,25 +33,26 @@ impl Cmd {
         try!(file.read_to_string(&mut cmd_str));
         let mut lines = cmd_str.lines();
 
-        let dir = PathBuf::from(unwrap_or_err!(lines.next(),
-                                               format!("Expected directory in first line of string:\n{}", cmd_str)));
+        let dir = PathBuf::from(try!(lines.next()
+            .or_err(format!("Expected directory in first line of string:\n{}", cmd_str))));
 
-        let cmd = String::from(unwrap_or_err!(lines.next(),
-                                              format!("Expected command in second line of string:\n{}", cmd_str)));
+        let cmd = String::from(try!(lines.next()
+            .or_err(format!("Expected command in second line of string:\n{}", cmd_str))));
 
-        let file = PathBuf::from(unwrap_or_err!(lines.next(),
-                                                format!("Expected file in third line of string:\n{}", cmd_str)));
+        let file = PathBuf::from(try!(lines.next()
+            .or_err(format!("Expected file in third line of string:\n{}", cmd_str))));
 
         Ok(Some(Cmd { directory: dir, command: cmd, file: file }))
     }
 
     pub fn from_json_obj(obj: &Map<String, Value>) -> CtResult<Cmd> {
-        let dir = PathBuf::from(unwrap_or_err!(obj.get("directory").and_then(Value::as_str),
-                                               format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj)));
+        let dir = PathBuf::from(try!(obj.get("directory").and_then(Value::as_str)
+            .or_err(format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj))));
 
         let file = {
-            let f = PathBuf::from(unwrap_or_err!(obj.get("file").and_then(Value::as_str),
-                                                 format!("Couldn't find string entry 'file' in json object: '{:?}'", obj)));
+            let f = PathBuf::from(try!(obj.get("file").and_then(Value::as_str)
+                .or_err(format!("Couldn't find string entry 'file' in json object: '{:?}'", obj))));
+
             if f.is_relative() {
                 dir.join(f)
             } else {
@@ -59,8 +60,8 @@ impl Cmd {
             }
         };
 
-        let cmd = String::from(unwrap_or_err!(obj.get("command").and_then(Value::as_str),
-                                              format!("Couldn't find string entry 'command' in json object: '{:?}'", obj)))
+        let cmd = String::from(try!(obj.get("command").and_then(Value::as_str)
+            .or_err(format!("Couldn't find string entry 'command' in json object: '{:?}'", obj))))
             .replace("\\", "");
 
         Ok(Cmd { directory: dir, command: cmd, file: file })
@@ -89,10 +90,10 @@ impl Cmd {
     }
 
     pub fn exec(&self) -> CtResult<()> {
-        false_or_err!(self.command.is_empty(), "Unexpected empty command string!");
+        try!((!self.command.is_empty()).or_err("Unexpected empty command string!"));
 
         let mut parts = self.command.split(" ");
-        let compiler = unwrap_or_err!(parts.next(), "Unexpected empty parts after command string split!");
+        let compiler = try!(parts.next().or_err("Unexpected empty parts after command string split!"));
 
         let mut cmd = Command::new(&compiler);
         cmd.current_dir(&self.directory);

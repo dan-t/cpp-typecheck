@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use clap::{App, Arg};
-use ct_result::{CtResult, CtError};
+use ct_result::{CtResult, CtError, OrErr};
 
 /// the configuration used to run `cpp-typecheck`
 #[derive(Debug)]
@@ -30,19 +30,15 @@ impl Config {
                .multiple(true))
            .get_matches_safe());
 
-       let cpp_file = PathBuf::from(unwrap_or_err!(matches.value_of("SOURCE-FILE"),
-                                                   "Missing C++ source file!"));
-
-       if cpp_file.is_relative() {
-           return Err(CtError::from("C++ source file has to have an absolute path!"));
-       }
+       let cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE").or_err("Missing C++ source file!")));
+       try!(cpp_file.is_absolute().or_err(format!("C++ source file '{}' has to have an absolute path!", cpp_file.display())));
 
        let db_files: Vec<PathBuf> = {
            if let Some(values) = matches.values_of("CLANG-DB") {
                values.map(PathBuf::from).collect()
            } else {
-               let dir = unwrap_or_err!(cpp_file.parent(),
-                                        format!("Couldn't get directory of source file '{:?}'!", cpp_file));
+               let dir = try!(cpp_file.parent()
+                  .or_err(format!("Couldn't get directory of source file '{}'!", cpp_file.display())));
 
                vec![try!(find_db(&dir))]
            }

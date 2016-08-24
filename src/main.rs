@@ -16,7 +16,7 @@ use std::io::Read;
 use std::io::{Write, stderr};
 use std::process::exit;
 use serde_json::Value;
-use ct_result::{CtResult, CtError};
+use ct_result::{CtResult, CtError, OrErr};
 use config::Config;
 use cmd::Cmd;
 
@@ -54,14 +54,10 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
         try!(file.read_to_string(&mut file_buffer));
 
         let json_value: Value = try!(serde_json::from_str(&file_buffer));
-
-        let objs = unwrap_or_err!(json_value.as_array(),
-                                  format!("Expected a json array but got: '{}'", json_value));
+        let objs = try!(json_value.as_array().or_err(format!("Expected a json array but got: '{}'", json_value)));
 
         for obj in objs {
-            let obj = unwrap_or_err!(obj.as_object(),
-                                     format!("Expected a json object but got: '{}'", obj));
-
+            let obj = try!(obj.as_object().or_err(format!("Expected a json object but got: '{}'", obj)));
             let cmd = try!(Cmd::from_json_obj(obj));
             if cmd.has_cpp_file(&config.cpp_file) {
                 try!(cmd.write_to_cache());

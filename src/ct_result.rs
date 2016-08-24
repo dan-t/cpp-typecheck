@@ -19,19 +19,31 @@ error_type! {
     }
 }
 
-macro_rules! unwrap_or_err {
-    ($opt:expr, $err:expr) => (match $opt {
-        Option::Some(val) => val,
-        Option::None      => {
-            return Result::Err(CtError::from($err))
+pub trait OrErr {
+    type R;
+
+    fn or_err<E>(self, err: E) -> Result<Self::R, E>;
+}
+
+impl<T> OrErr for Option<T> {
+    type R = T;
+
+    fn or_err<E>(self, err: E) -> Result<Self::R, E> {
+        match self {
+            Some(v) => Ok(v),
+            None    => Err(err)
         }
-    })
+    }
 }
 
-macro_rules! true_or_err {
-    ($bool:expr, $err:expr) => (if $bool {} else { return Result::Err(CtError::from($err)) })
-}
+impl OrErr for bool {
+    type R = ();
 
-macro_rules! false_or_err {
-    ($bool:expr, $err:expr) => (if $bool { return Result::Err(CtError::from($err)) } else {})
+    fn or_err<E>(self, err: E) -> Result<Self::R, E> {
+        if self {
+            Ok(())
+        } else {
+            Err(err)
+        }
+    }
 }
