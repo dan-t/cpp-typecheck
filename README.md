@@ -80,6 +80,11 @@ has also to be given:
 
     $> cpp-typecheck  /absolute_path_to/SomeSource.cpp  path_to/compile_commands.json
 
+It's also possible to use an other compiler for the type checking than the one defined
+in the database, as long as the compiler arguments are compatible (which is the case for gcc and clang):
+
+    $> cpp-typecheck  --compiler clang  /absolute_path_to/SomeSource.cpp
+
 Text Editor Integration
 -----------------------
 
