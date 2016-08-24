@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use clap::{App, Arg};
-use ct_result::{CtResult, CtError, OrErr};
+use ct_result::{CtResult, OrErr};
 
 /// the configuration used to run `cpp-typecheck`
 #[derive(Debug)]
@@ -54,9 +54,7 @@ impl Config {
            }
        };
 
-       if db_files.is_empty() {
-           return Err(CtError::from("Missing clang compilation database!"));
-       }
+       try!((! db_files.is_empty()).or_err("Missing clang compilation database!"));
 
        Ok(Config {
            compiler: matches.value_of("compiler").map(String::from),
@@ -84,9 +82,7 @@ fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
             }
         }
 
-        if ! dir.pop() {
-            return Err(CtError::from(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
-                                             start_dir.display())));
-        }
+        try!(dir.pop().or_err(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
+                                      start_dir.display())));
     }
 }

@@ -1,12 +1,12 @@
 use std::fs;
 use std::env;
 use std::path::{Path, PathBuf};
-use ct_result::{CtResult, CtError};
+use ct_result::CtResult;
 
 lazy_static! {
     static ref CMD_CACHE_DIR: CtResult<PathBuf> = {
         env::home_dir()
-            .ok_or(CtError::from("Couldn't read home directory!"))
+            .ok_or("Couldn't read home directory!".into())
             .map(|d| d.join(".cpp_typecheck")
                       .join("cache")
                       .join("cmds"))

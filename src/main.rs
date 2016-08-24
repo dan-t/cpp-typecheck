@@ -16,7 +16,7 @@ use std::io::Read;
 use std::io::{Write, stderr};
 use std::process::exit;
 use serde_json::Value;
-use ct_result::{CtResult, CtError, OrErr};
+use ct_result::{CtResult, OrErr};
 use config::Config;
 use cmd::Cmd;
 
@@ -72,7 +72,6 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
         }
     }
 
-    Err(CtError::from(format!("Couldn't find C++ source file '{:?}' in compilation databases '{:?}'!",
-                              &config.cpp_file,
-                              &config.db_files)))
+    Err(format!("Couldn't find C++ source file '{}' in compilation databases {:?}!",
+                &config.cpp_file.display(), &config.db_files).into())
 }
