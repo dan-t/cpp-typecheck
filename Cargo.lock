@@ -1,6 +1,6 @@
 [root]
 name = "cpp-typecheck"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "clap 2.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-type 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -1,0 +1,5 @@
+0.3.0
+-----
+
+* Add compiler option, to be able to type check with an other compiler
+  than the one specified in the database
