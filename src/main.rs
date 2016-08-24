@@ -37,7 +37,13 @@ fn main() {
 fn execute() -> CtResult<()> {
     let config = try!(Config::from_command_args());
     let cmd = try!(get_cmd(&config));
-    try!(cmd.exec());
+
+    try!(if let Some(ref compiler) = config.compiler {
+        cmd.exec_with(&compiler)
+    } else {
+        cmd.exec()
+    });
+
     Ok(())
 }
 

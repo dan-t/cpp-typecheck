@@ -6,6 +6,10 @@ use ct_result::{CtResult, CtError, OrErr};
 /// the configuration used to run `cpp-typecheck`
 #[derive(Debug)]
 pub struct Config {
+    /// use this compiler for the type checking instead
+    /// of the one specified in the database
+    pub compiler: Option<String>,
+
     /// the C++ source file to type check
     pub cpp_file: PathBuf,
 
@@ -20,6 +24,12 @@ impl Config {
            .about("Type check a C++ source file with a clang compilation database")
            .version(crate_version!())
            .author("Daniel Trstenjak <daniel.trstenjak@gmail.com>")
+           .arg(Arg::with_name("compiler")
+                .short("c")
+                .long("compiler")
+                .value_names(&["PATH"])
+                .help("Use this compiler for the type checking instead of the one specified in the database")
+                .takes_value(true))
            .arg(Arg::with_name("SOURCE-FILE")
                .help("The C++ source file to type check")
                .required(true)
@@ -48,7 +58,11 @@ impl Config {
            return Err(CtError::from("Missing clang compilation database!"));
        }
 
-       Ok(Config { cpp_file: cpp_file, db_files: db_files })
+       Ok(Config {
+           compiler: matches.value_of("compiler").map(String::from),
+           cpp_file: cpp_file,
+           db_files: db_files
+       })
    }
 }
 

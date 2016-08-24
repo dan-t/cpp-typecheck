@@ -90,12 +90,22 @@ impl Cmd {
     }
 
     pub fn exec(&self) -> CtResult<()> {
+        self.exec_internal(None)
+    }
+
+    pub fn exec_with(&self, compiler: &str) -> CtResult<()> {
+        self.exec_internal(Some(compiler))
+    }
+
+    fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
         try!((!self.command.is_empty()).or_err("Unexpected empty command string!"));
 
         let mut parts = self.command.split(" ");
-        let compiler = try!(parts.next().or_err("Unexpected empty parts after command string split!"));
 
-        let mut cmd = Command::new(&compiler);
+        let db_compiler = try!(parts.next().or_err("Unexpected empty parts after command string split!"));
+        let used_compiler = compiler.unwrap_or(db_compiler);
+
+        let mut cmd = Command::new(&used_compiler);
         cmd.current_dir(&self.directory);
 
         for p in parts {
@@ -106,8 +116,8 @@ impl Cmd {
             cmd.arg(p);
         }
 
-        let is_gcc = compiler.contains("gcc") || compiler.contains("g++");
-        let is_clang = compiler.contains("clang") || compiler.contains("clang++");
+        let is_gcc = used_compiler.contains("gcc") || used_compiler.contains("g++");
+        let is_clang = used_compiler.contains("clang") || used_compiler.contains("clang++");
         if is_gcc || is_clang {
             cmd.arg("-fsyntax-only");
         }
