@@ -1,3 +1,8 @@
+0.3.1
+-----
+
+* Add --no-cache and --force-recache flags
+
 0.3.0
 -----
 
