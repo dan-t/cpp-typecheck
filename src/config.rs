@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use clap::{App, Arg};
-use ct_result::{CtResult, OrErr};
+use ct_result::{CtResult, OkOr};
 
 /// the configuration used to run `cpp-typecheck`
 #[derive(Debug)]
@@ -40,21 +40,21 @@ impl Config {
                .multiple(true))
            .get_matches_safe());
 
-       let cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE").or_err("Missing C++ source file!")));
-       try!(cpp_file.is_absolute().or_err(format!("C++ source file '{}' has to have an absolute path!", cpp_file.display())));
+       let cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE").ok_or("Missing C++ source file!")));
+       try!(cpp_file.is_absolute().ok_or(format!("C++ source file '{}' has to have an absolute path!", cpp_file.display())));
 
        let db_files: Vec<PathBuf> = {
            if let Some(values) = matches.values_of("CLANG-DB") {
                values.map(PathBuf::from).collect()
            } else {
                let dir = try!(cpp_file.parent()
-                  .or_err(format!("Couldn't get directory of source file '{}'!", cpp_file.display())));
+                  .ok_or(format!("Couldn't get directory of source file '{}'!", cpp_file.display())));
 
                vec![try!(find_db(&dir))]
            }
        };
 
-       try!((! db_files.is_empty()).or_err("Missing clang compilation database!"));
+       try!((! db_files.is_empty()).ok_or("Missing clang compilation database!"));
 
        Ok(Config {
            compiler: matches.value_of("compiler").map(String::from),
@@ -82,7 +82,7 @@ fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
             }
         }
 
-        try!(dir.pop().or_err(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
-                                      start_dir.display())));
+        try!(dir.pop().ok_or(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
+                                     start_dir.display())));
     }
 }

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::hash::{Hash, SipHasher, Hasher};
 use std::process::Command;
 use serde_json::{Value, Map};
-use ct_result::{CtResult, CtError, OrErr};
+use ct_result::{CtResult, CtError, OkOr};
 use dirs::cmd_cache_dir;
 
 /// a compiler command from the clang compilation database
@@ -34,24 +34,24 @@ impl Cmd {
         let mut lines = cmd_str.lines();
 
         let dir = PathBuf::from(try!(lines.next()
-            .or_err(format!("Expected directory in first line of string:\n{}", cmd_str))));
+            .ok_or(format!("Expected directory in first line of string:\n{}", cmd_str))));
 
         let cmd = String::from(try!(lines.next()
-            .or_err(format!("Expected command in second line of string:\n{}", cmd_str))));
+            .ok_or(format!("Expected command in second line of string:\n{}", cmd_str))));
 
         let file = PathBuf::from(try!(lines.next()
-            .or_err(format!("Expected file in third line of string:\n{}", cmd_str))));
+            .ok_or(format!("Expected file in third line of string:\n{}", cmd_str))));
 
         Ok(Some(Cmd { directory: dir, command: cmd, file: file }))
     }
 
     pub fn from_json_obj(obj: &Map<String, Value>) -> CtResult<Cmd> {
         let dir = PathBuf::from(try!(obj.get("directory").and_then(Value::as_str)
-            .or_err(format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj))));
+            .ok_or(format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj))));
 
         let file = {
             let f = PathBuf::from(try!(obj.get("file").and_then(Value::as_str)
-                .or_err(format!("Couldn't find string entry 'file' in json object: '{:?}'", obj))));
+                .ok_or(format!("Couldn't find string entry 'file' in json object: '{:?}'", obj))));
 
             if f.is_relative() {
                 dir.join(f)
@@ -61,7 +61,7 @@ impl Cmd {
         };
 
         let cmd = String::from(try!(obj.get("command").and_then(Value::as_str)
-            .or_err(format!("Couldn't find string entry 'command' in json object: '{:?}'", obj))))
+            .ok_or(format!("Couldn't find string entry 'command' in json object: '{:?}'", obj))))
             .replace("\\", "");
 
         Ok(Cmd { directory: dir, command: cmd, file: file })
@@ -98,11 +98,11 @@ impl Cmd {
     }
 
     fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
-        try!((!self.command.is_empty()).or_err("Unexpected empty command string!"));
+        try!((!self.command.is_empty()).ok_or("Unexpected empty command string!"));
 
         let mut parts = self.command.split(" ");
 
-        let db_compiler = try!(parts.next().or_err("Unexpected empty parts after command string split!"));
+        let db_compiler = try!(parts.next().ok_or("Unexpected empty parts after command string split!"));
         let used_compiler = compiler.unwrap_or(db_compiler);
 
         let mut cmd = Command::new(&used_compiler);

@@ -19,27 +19,16 @@ error_type! {
     }
 }
 
-pub trait OrErr {
+pub trait OkOr {
     type R;
 
-    fn or_err<E>(self, err: E) -> Result<Self::R, E>;
+    fn ok_or<E>(self, err: E) -> Result<Self::R, E>;
 }
 
-impl<T> OrErr for Option<T> {
-    type R = T;
-
-    fn or_err<E>(self, err: E) -> Result<Self::R, E> {
-        match self {
-            Some(v) => Ok(v),
-            None    => Err(err)
-        }
-    }
-}
-
-impl OrErr for bool {
+impl OkOr for bool {
     type R = ();
 
-    fn or_err<E>(self, err: E) -> Result<Self::R, E> {
+    fn ok_or<E>(self, err: E) -> Result<Self::R, E> {
         if self {
             Ok(())
         } else {
