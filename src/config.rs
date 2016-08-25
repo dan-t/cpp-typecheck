@@ -15,7 +15,15 @@ pub struct Config {
 
     /// the clang compilation databases to look up
     /// the C++ source file
-    pub db_files: Vec<PathBuf>
+    pub db_files: Vec<PathBuf>,
+
+    /// forces the lookup in the database without considering
+    /// the command cache
+    pub no_cache: bool,
+
+    /// forces the recaching of the command by doing the lookup
+    /// in the database
+    pub force_recache: bool
 }
 
 impl Config {
@@ -30,6 +38,14 @@ impl Config {
                 .value_names(&["PATH"])
                 .help("Use this compiler for the type checking instead of the one specified in the database")
                 .takes_value(true))
+           .arg(Arg::with_name("no-cache")
+                .short("n")
+                .long("no-cache")
+                .help("Forces the lookup in the database without considering the command cache"))
+           .arg(Arg::with_name("force-recache")
+                .short("f")
+                .long("force-recache")
+                .help("Forces the recaching of the command by doing the lookup in the database"))
            .arg(Arg::with_name("SOURCE-FILE")
                .help("The C++ source file to type check")
                .required(true)
@@ -59,7 +75,9 @@ impl Config {
        Ok(Config {
            compiler: matches.value_of("compiler").map(String::from),
            cpp_file: cpp_file,
-           db_files: db_files
+           db_files: db_files,
+           no_cache: matches.is_present("no-cache"),
+           force_recache: matches.is_present("force-recache")
        })
    }
 }

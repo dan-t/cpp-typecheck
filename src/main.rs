@@ -48,8 +48,10 @@ fn execute() -> CtResult<()> {
 }
 
 fn get_cmd(config: &Config) -> CtResult<Cmd> {
-    if let Some(cmd) = try!(Cmd::from_cache(&config.cpp_file)) {
-        return Ok(cmd);
+    if ! config.no_cache && ! config.force_recache {
+        if let Some(cmd) = try!(Cmd::from_cache(&config.cpp_file)) {
+            return Ok(cmd);
+        }
     }
 
     let mut file_buffer = String::new();
@@ -66,7 +68,10 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
             let obj = try!(obj.as_object().ok_or(format!("Expected a json object but got: '{}'", obj)));
             let cmd = try!(Cmd::from_json_obj(obj));
             if cmd.has_cpp_file(&config.cpp_file) {
-                try!(cmd.write_to_cache());
+                if ! config.no_cache {
+                    try!(cmd.write_to_cache());
+                }
+
                 return Ok(cmd);
             }
         }
