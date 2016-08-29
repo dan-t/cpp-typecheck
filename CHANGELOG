@@ -1,3 +1,7 @@
+0.3.3
+-----
+* Support headers with 'hpp' extension
+
 0.3.2
 -----
 * Support type checking of headers
