@@ -62,8 +62,13 @@ impl Config {
        // if 'cpp_file' is a header file search for a C++ source file in the same directory
        {
            let header_file = cpp_file.clone();
-           let ext = header_file.extension();
-           let is_header_file = ext.is_none() || ext.unwrap() == "h";
+           let is_header_file = if let Some(ext) = header_file.extension() {
+               ext == "h" || ext == "hpp"
+           } else {
+               // no extension, assume a header file
+               true
+           };
+
            if is_header_file {
                let mut found_cpp_file: Option<PathBuf> = None;
                let cpp_exts = ["cpp", "cxx", "c"];
