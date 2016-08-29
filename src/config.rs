@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use clap::{App, Arg};
-use ct_result::{CtResult, OkOr};
+use ct_result::{CtResult, CtError, OkOr};
 
 /// the configuration used to run `cpp-typecheck`
 #[derive(Debug)]
@@ -56,8 +56,32 @@ impl Config {
                .multiple(true))
            .get_matches_safe());
 
-       let cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE").ok_or("Missing C++ source file!")));
+       let mut cpp_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE").ok_or("Missing C++ source file!")));
        try!(cpp_file.is_absolute().ok_or(format!("C++ source file '{}' has to have an absolute path!", cpp_file.display())));
+
+       // if 'cpp_file' is a header file search for a C++ source file in the same directory
+       {
+           let header_file = cpp_file.clone();
+           let ext = header_file.extension();
+           let is_header_file = ext.is_none() || ext.unwrap() == "h";
+           if is_header_file {
+               let mut found_cpp_file: Option<PathBuf> = None;
+               let cpp_exts = ["cpp", "cxx", "c"];
+               for cpp_ext in &cpp_exts {
+                   let file = header_file.with_extension(cpp_ext);
+                   if file.is_file() {
+                       found_cpp_file = Some(file);
+                       break;
+                   }
+               }
+
+               if found_cpp_file.is_none() {
+                   return Err(CtError::from(format!("Couldn't find C++ source file for header '{}'!", header_file.display())));
+               } else {
+                   cpp_file = found_cpp_file.unwrap();
+               }
+           }
+       }
 
        let db_files: Vec<PathBuf> = {
            if let Some(values) = matches.values_of("CLANG-DB") {
