@@ -1,6 +1,7 @@
 use std::io::Error as IoError;
 use serde_json::Error as SerdeError;
 use clap::Error as ClapError;
+use tempfile;
 
 /// the result type used for the whole application
 pub type CtResult<T> = Result<T, CtError>;
@@ -15,6 +16,7 @@ error_type! {
             from (ie: IoError) ie.to_string();
             from (se: SerdeError) se.to_string();
             from (ce: ClapError) ce.to_string();
+            from (pe: tempfile::PersistError) pe.to_string();
         },
     }
 }

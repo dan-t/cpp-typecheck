@@ -202,13 +202,13 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
                 }
 
                 if let Ok(cmd) = Cmd::from_databases(&file, db_files) {
-                    let cmd = cmd.replace_cpp_file(&file);
-
                     let mut cpp_file = try!(NamedTempFileOptions::new()
-                        .prefix("cpp-typecheck")
+                        .prefix("cpp-typecheck-")
+                        .suffix(".cpp")
                         .create());
 
                     try!(cpp_file.write_fmt(format_args!("#include \"{}\"\n", src_file.display())));
+                    let cmd = cmd.replace_cpp_file(&cpp_file.path());
 
                     return Ok(SourceFile::FromHeaderWithTmpSource {
                         header_file: src_file.to_path_buf(),

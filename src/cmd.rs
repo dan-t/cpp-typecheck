@@ -155,7 +155,7 @@ impl Cmd {
             cmd.arg("-fsyntax-only");
         }
 
-        try!(cmd.spawn()
+        try!(cmd.status()
             .map_err(|e| CtError::from(format!("Command execution failed: {}, because: {}", self.command, e))));
 
         Ok(())
