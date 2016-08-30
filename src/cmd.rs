@@ -151,10 +151,11 @@ impl Cmd {
 
         let is_gcc = used_compiler.contains("gcc") || used_compiler.contains("g++");
         let is_clang = used_compiler.contains("clang") || used_compiler.contains("clang++");
-        if is_gcc || is_clang {
-            cmd.arg("-fsyntax-only");
+        if ! is_gcc && ! is_clang {
+            return Err(CtError::from(format!("Unsupported compiler for only type checking '{}'!", used_compiler)));
         }
 
+        cmd.arg("-fsyntax-only");
         try!(cmd.status()
             .map_err(|e| CtError::from(format!("Command execution failed: {}, because: {}", self.command, e))));
 
