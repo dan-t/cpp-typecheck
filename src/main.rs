@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 extern crate serde_json;
+extern crate tempfile;
 
 #[macro_use]
 extern crate error_type;
@@ -11,13 +12,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate clap;
 
-use std::fs::File;
-use std::io::Read;
 use std::io::{Write, stderr};
 use std::process::exit;
-use serde_json::Value;
 use ct_result::CtResult;
-use config::Config;
+use config::{Config, SourceFile};
 use cmd::Cmd;
 
 #[macro_use]
@@ -48,35 +46,23 @@ fn execute() -> CtResult<()> {
 }
 
 fn get_cmd(config: &Config) -> CtResult<Cmd> {
-    if ! config.no_cache && ! config.force_recache {
-        if let Some(cmd) = try!(Cmd::from_cache(&config.cpp_file)) {
-            return Ok(cmd);
-        }
-    }
-
-    let mut file_buffer = String::new();
-
-    for db_file in &config.db_files {
-        let mut file = try!(File::open(db_file));
-        file_buffer.clear();
-        try!(file.read_to_string(&mut file_buffer));
-
-        let json_value: Value = try!(serde_json::from_str(&file_buffer));
-        let objs = try!(json_value.as_array().ok_or(format!("Expected a json array but got: '{}'", json_value)));
-
-        for obj in objs {
-            let obj = try!(obj.as_object().ok_or(format!("Expected a json object but got: '{}'", obj)));
-            let cmd = try!(Cmd::from_json_obj(obj));
-            if cmd.has_cpp_file(&config.cpp_file) {
-                if ! config.no_cache {
-                    try!(cmd.write_to_cache());
+    let source_file = &config.source_file;
+    match *source_file {
+        SourceFile::FromArg { ref cpp_file, .. } | SourceFile::FromHeader { ref cpp_file, .. } => {
+            if ! config.no_cache && ! config.force_recache {
+                if let Some(cmd) = try!(Cmd::from_cache(&cpp_file)) {
+                    return Ok(cmd);
                 }
-
-                return Ok(cmd);
             }
-        }
-    }
 
-    Err(format!("Couldn't find C++ source file '{}' in compilation databases {:?}!",
-                &config.cpp_file.display(), &config.db_files).into())
+            let cmd = try!(Cmd::from_databases(&cpp_file, &config.db_files));
+            if ! config.no_cache {
+                try!(cmd.write_to_cache());
+            }
+
+            Ok(cmd)
+        },
+
+        SourceFile::FromHeaderWithTmpSource { ref command, .. } => Ok(command.clone())
+    }
 }

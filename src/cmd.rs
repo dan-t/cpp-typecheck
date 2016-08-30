@@ -3,11 +3,12 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::hash::{Hash, SipHasher, Hasher};
 use std::process::Command;
-use serde_json::{Value, Map};
+use serde_json::{self, Value, Map};
 use ct_result::{CtResult, CtError, OkOr};
 use dirs::cmd_cache_dir;
 
 /// a compiler command from the clang compilation database
+#[derive(Clone, Debug)]
 pub struct Cmd {
     /// the working directory for the compiler
     /// command execution
@@ -45,7 +46,30 @@ impl Cmd {
         Ok(Some(Cmd { directory: dir, command: cmd, file: file }))
     }
 
-    pub fn from_json_obj(obj: &Map<String, Value>) -> CtResult<Cmd> {
+    pub fn from_databases(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<Cmd> {
+        let mut file_buffer = String::new();
+        for db_file in db_files {
+            let mut file = try!(File::open(db_file));
+            file_buffer.clear();
+            try!(file.read_to_string(&mut file_buffer));
+
+            let json_value: Value = try!(serde_json::from_str(&file_buffer));
+            let objs = try!(json_value.as_array().ok_or(format!("Expected a json array but got: '{}'", json_value)));
+
+            for obj in objs {
+                let obj = try!(obj.as_object().ok_or(format!("Expected a json object but got: '{}'", obj)));
+                let cmd = try!(Cmd::from_json_obj(obj));
+                if cmd.has_cpp_file(cpp_file) {
+                    return Ok(cmd);
+                }
+            }
+        }
+
+        Err(format!("Couldn't find C++ source file '{}' in compilation databases {:?}!",
+                    cpp_file.display(), db_files).into())
+    }
+
+    fn from_json_obj(obj: &Map<String, Value>) -> CtResult<Cmd> {
         let dir = PathBuf::from(try!(obj.get("directory").and_then(Value::as_str)
             .ok_or(format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj))));
 
@@ -87,6 +111,15 @@ impl Cmd {
 
     pub fn has_cpp_file(&self, file: &Path) -> bool {
         file == self.file
+    }
+
+    pub fn replace_cpp_file(&self, cpp_file: &Path) -> Cmd {
+        Cmd {
+            directory: self.directory.clone(),
+            command: self.command.clone().replace(&format!("{}", self.file.display()),
+                                                  &format!("{}", cpp_file.display())),
+            file: cpp_file.to_path_buf()
+        }
     }
 
     pub fn exec(&self) -> CtResult<()> {
