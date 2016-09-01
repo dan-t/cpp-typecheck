@@ -151,7 +151,12 @@ fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
 
 fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile> {
     let is_header_file = if let Some(ext) = src_file.extension() {
-        ext == "h" || ext == "hpp"
+        ext == "h"
+            || ext == "hpp"
+            || ext == "hh"
+            || ext == "H"
+            || ext == "HPP"
+            || ext == "HH"
     } else {
         // no extension, assume a header file
         true
@@ -161,7 +166,7 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
         return Ok(SourceFile::FromArg { cpp_file: src_file.to_path_buf() });
     }
 
-    let cpp_exts = ["cpp", "cxx", "c"];
+    let cpp_exts = ["cpp", "cxx", "cc", "c", "CPP", "CXX", "CC", "C"];
     // search for C++ source file in the same directory with same
     // name as the header file
     {
