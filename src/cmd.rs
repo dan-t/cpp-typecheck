@@ -1,9 +1,10 @@
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::hash::{Hash, SipHasher, Hasher};
 use std::process::Command;
 use serde_json::{self, Value, Map};
+use atomicwrites::{AtomicFile, AllowOverwrite};
 use ct_result::{CtResult, CtError, OkOr};
 use dirs::cmd_cache_dir;
 
@@ -97,17 +98,14 @@ impl Cmd {
         let cache_dir = try!(cmd_cache_dir());
         let cache_file = cache_dir.join(compute_hash(&self.file));
 
-        let mut file = try!(OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .read(true)
-            .write(true)
-            .open(cache_file));
+        let file = AtomicFile::new(cache_file, AllowOverwrite);
+        try!(file.write(|f| {
+            f.write_fmt(format_args!("{}\n{}\n{}",
+                                     self.directory.to_string_lossy(),
+                                     self.command,
+                                     self.file.to_string_lossy()))
+        }));
 
-        let _ = try!(file.write_fmt(format_args!("{}\n{}\n{}",
-                                                 self.directory.to_string_lossy(),
-                                                 self.command,
-                                                 self.file.to_string_lossy())));
         Ok(())
     }
 
