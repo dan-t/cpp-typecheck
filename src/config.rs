@@ -151,12 +151,7 @@ fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
 
 fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile> {
     let is_header_file = if let Some(ext) = src_file.extension() {
-        ext == "h"
-            || ext == "hpp"
-            || ext == "hh"
-            || ext == "H"
-            || ext == "HPP"
-            || ext == "HH"
+        HEADER_EXTENSIONS.iter().any(|he| *he == ext)
     } else {
         // no extension, assume a header file
         true
@@ -166,12 +161,11 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
         return Ok(SourceFile::FromArg { cpp_file: src_file.to_path_buf() });
     }
 
-    let cpp_exts = ["cpp", "cxx", "cc", "c", "CPP", "CXX", "CC", "C"];
     // search for C++ source file in the same directory with same
     // name as the header file
     {
         let mut cpp_file: Option<PathBuf> = None;
-        for cpp_ext in &cpp_exts {
+        for cpp_ext in &SOURCE_EXTENSIONS {
             let file = src_file.with_extension(cpp_ext);
             if file.is_file() {
                 cpp_file = Some(file);
@@ -231,13 +225,12 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
 fn is_cpp_source_file(file: &Path) -> bool {
     if let Some(ext) = file.extension() {
         let ext = ext.to_string_lossy();
-        let cpp_exts = ["cpp", "cxx", "c"];
-        for cpp_ext in &cpp_exts {
-            if ext == *cpp_ext {
-                return true;
-            }
-        }
+        SOURCE_EXTENSIONS.iter().any(|se| *se == ext)
     }
-
-    return false;
+    else {
+        false
+    }
 }
+
+static SOURCE_EXTENSIONS: [&'static str; 10] = ["cpp", "cxx", "cc", "c++", "c", "CPP", "CXX", "CC", "C", "C++"];
+static HEADER_EXTENSIONS: [&'static str; 10] = ["h", "hpp", "hxx", "hh", "h++", "H", "HPP", "HXX", "HH", "H++"];
