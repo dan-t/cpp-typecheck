@@ -40,6 +40,8 @@ impl Cmd {
         let cmd = String::from(try!(lines.next()
             .ok_or(format!("Expected command in second line of string:\n{}", cmd_str))));
 
+        try!((! cmd.is_empty()).ok_or(format!("Unexpected empty command in: {}!", cmd_str)));
+
         let file = PathBuf::from(try!(lines.next()
             .ok_or(format!("Expected file in third line of string:\n{}", cmd_str))));
 
@@ -130,9 +132,12 @@ impl Cmd {
         self.exec_internal(Some(compiler))
     }
 
-    fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
-        try!((!self.command.is_empty()).ok_or("Unexpected empty command string!"));
+    pub fn get_compiler(&self) -> CtResult<&str> {
+        let mut parts = self.command.split(" ");
+        parts.next().ok_or(CtError::from(format!("Unexpected empty parts after command split of: {}!", self.command)))
+    }
 
+    fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
         let mut parts = self.command.split(" ");
 
         let db_compiler = try!(parts.next().ok_or("Unexpected empty parts after command string split!"));
@@ -149,18 +154,26 @@ impl Cmd {
             cmd.arg(p);
         }
 
-        let is_gcc = used_compiler.contains("gcc") || used_compiler.contains("g++");
-        let is_clang = used_compiler.contains("clang") || used_compiler.contains("clang++");
-        if ! is_gcc && ! is_clang {
-            return Err(CtError::from(format!("Unsupported compiler for only type checking '{}'!", used_compiler)));
+        if is_gcc_or_clang_compiler(used_compiler) {
+            cmd.arg("-fsyntax-only");
         }
 
-        cmd.arg("-fsyntax-only");
         try!(cmd.status()
             .map_err(|e| CtError::from(format!("Command execution failed: {}, because: {}", self.command, e))));
 
         Ok(())
     }
+}
+
+pub fn has_only_type_checking_flag(compiler: &str) -> bool {
+    is_gcc_or_clang_compiler(compiler)
+}
+
+fn is_gcc_or_clang_compiler(compiler: &str) -> bool {
+    compiler.contains("gcc")
+        || compiler.contains("g++")
+        || compiler.contains("clang")
+        || compiler.contains("clang++")
 }
 
 fn compute_hash(cpp_file: &Path) -> String {
