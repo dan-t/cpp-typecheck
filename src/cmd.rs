@@ -98,12 +98,12 @@ impl Cmd {
         let cache_dir = try!(cmd_cache_dir());
         let cache_file = cache_dir.join(compute_hash(&self.file));
 
-        let file = AtomicFile::new(cache_file, AllowOverwrite);
-        try!(file.write(|f| {
-            f.write_fmt(format_args!("{}\n{}\n{}",
-                                     self.directory.to_string_lossy(),
-                                     self.command,
-                                     self.file.to_string_lossy()))
+        try!(AtomicFile::new(cache_file, AllowOverwrite)
+             .write(|f| {
+                 f.write_fmt(format_args!("{}\n{}\n{}",
+                             self.directory.to_string_lossy(),
+                             self.command,
+                             self.file.to_string_lossy()))
         }));
 
         Ok(())
