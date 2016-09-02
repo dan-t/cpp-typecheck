@@ -4,7 +4,7 @@ use std::io::Write;
 use clap::{App, Arg};
 use tempfile::{NamedTempFile, NamedTempFileOptions};
 use ct_result::{CtResult, CtError, OkOr};
-use cmd::Cmd;
+use cmd::{Cmd, has_only_type_checking_flag};
 
 #[derive(Debug)]
 pub enum SourceFile {
@@ -116,13 +116,35 @@ impl Config {
 
        let source_file = try!(get_source_file(&src_file, &db_files));
 
-       Ok(Config {
+       let config = Config {
            compiler: matches.value_of("compiler").map(String::from),
            source_file: source_file,
            db_files: db_files,
            no_cache: matches.is_present("no-cache"),
            force_recache: matches.is_present("force-recache")
-       })
+       };
+
+       try!(config.check());
+       Ok(config)
+   }
+
+   fn check(&self) -> CtResult<()> {
+       match self.source_file {
+           SourceFile::FromHeaderWithTmpSource { ref command, .. } => {
+               let compiler = if let Some(ref c) = self.compiler {
+                   c
+               } else {
+                   try!(command.get_compiler())
+               };
+
+               try!(has_only_type_checking_flag(compiler)
+                    .ok_or(format!("Unsupported compiler '{}' for type checking a header without a C++ source file!", compiler)));
+           },
+
+           _ => ()
+       };
+
+       Ok(())
    }
 }
 

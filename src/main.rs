@@ -15,9 +15,9 @@ extern crate clap;
 
 use std::io::{Write, stderr};
 use std::process::exit;
-use ct_result::{CtResult, CtError};
+use ct_result::CtResult;
 use config::{Config, SourceFile};
-use cmd::{Cmd, has_only_type_checking_flag};
+use cmd::Cmd;
 
 #[macro_use]
 mod ct_result;
@@ -65,17 +65,7 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
         },
 
         SourceFile::FromHeaderWithTmpSource { ref command, .. } => {
-            let compiler = if let Some(ref compiler) = config.compiler {
-                compiler.clone()
-            } else {
-                try!(command.get_compiler()).to_string()
-            };
-
-            if has_only_type_checking_flag(&compiler) {
-                Ok(command.clone())
-            } else {
-                Err(CtError::from(format!("Unsupported compiler '{}' for type checking a header without a C++ source file!", compiler)))
-            }
+            Ok(command.clone())
         }
     }
 }
