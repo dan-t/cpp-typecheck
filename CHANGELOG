@@ -1,3 +1,7 @@
+0.3.7
+-----
+* Minor changes
+
 0.3.6
 -----
 * Support a few more header/source file extensions
@@ -22,11 +26,9 @@
 
 0.3.1
 -----
-
 * Add --no-cache and --force-recache flags
 
 0.3.0
 -----
-
 * Add compiler option, to be able to type check with an other compiler
   than the one specified in the database
