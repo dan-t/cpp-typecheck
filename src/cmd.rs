@@ -1,7 +1,8 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::hash::{Hash, SipHasher, Hasher};
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 use std::process::Command;
 use serde_json::{self, Value, Map};
 use atomicwrites::{AtomicFile, AllowOverwrite};
@@ -175,7 +176,7 @@ fn is_gcc_or_clang_compiler(compiler: &str) -> bool {
 }
 
 fn compute_hash(cpp_file: &Path) -> String {
-    let mut hasher = SipHasher::new();
+    let mut hasher = DefaultHasher::new();
     cpp_file.hash(&mut hasher);
     hasher.finish().to_string()
 }
