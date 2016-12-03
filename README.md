@@ -98,3 +98,6 @@ that multiple type checks of the same source don't need to look up the command a
 in the database. Normally this shouldn't be an issue, because the commands in the database
 very rarely change in a way that affects type checking, but if there're problems, then
 the cache at `~/.cpp_typecheck/cache/cmds` can be just cleared.
+
+There's also the option `--no-cache` to ignore the cache and to always lookup the
+compiler command in the database.
