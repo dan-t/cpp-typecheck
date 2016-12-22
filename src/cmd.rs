@@ -6,7 +6,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::process::Command;
 use serde_json::{self, Value, Map};
 use atomicwrites::{AtomicFile, AllowOverwrite};
-use ct_result::{CtResult, CtError, OkOr};
+use ct_result::{CtResult, OkOr};
 use dirs::cmd_cache_dir;
 
 /// a compiler command from the clang compilation database
@@ -133,7 +133,7 @@ impl Cmd {
 
     pub fn get_compiler(&self) -> CtResult<&str> {
         let mut parts = self.command.split(" ");
-        parts.next().ok_or(CtError::from(format!("Unexpected empty parts after command split of: {}!", self.command)))
+        parts.next().ok_or(format!("Unexpected empty parts after command split of: {}!", self.command).into())
     }
 
     fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
@@ -158,7 +158,7 @@ impl Cmd {
         }
 
         try!(cmd.status()
-            .map_err(|e| CtError::from(format!("Command execution failed: {}, because: {}", self.command, e))));
+            .map_err(|e| format!("Command execution failed: {}, because: {}", self.command, e)));
 
         Ok(())
     }

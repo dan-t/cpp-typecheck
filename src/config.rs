@@ -3,7 +3,7 @@ use std::fs;
 use std::io::Write;
 use clap::{App, Arg};
 use tempfile::{NamedTempFile, NamedTempFileOptions};
-use ct_result::{CtResult, CtError, OkOr};
+use ct_result::{CtResult, OkOr};
 use cmd::{Cmd, has_only_type_checking_flag};
 
 #[derive(Debug)]
@@ -241,7 +241,7 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
         }
     }
 
-    Err(CtError::from(format!("Couldn't find C++ source file for header '{}'!", src_file.display())))
+    Err(format!("Couldn't find C++ source file for header '{}'!", src_file.display()).into())
 }
 
 fn is_cpp_source_file(file: &Path) -> bool {
