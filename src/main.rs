@@ -34,14 +34,14 @@ fn main() {
 }
 
 fn execute() -> CtResult<()> {
-    let config = try!(Config::from_command_args());
-    let cmd = try!(get_cmd(&config));
+    let config = Config::from_command_args()?;
+    let cmd = get_cmd(&config)?;
 
-    try!(if let Some(ref compiler) = config.compiler {
-        cmd.exec_with(&compiler)
+    if let Some(ref compiler) = config.compiler {
+        cmd.exec_with(&compiler)?;
     } else {
-        cmd.exec()
-    });
+        cmd.exec()?;
+    }
 
     Ok(())
 }
@@ -51,14 +51,14 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
     match *source_file {
         SourceFile::FromArg { ref cpp_file, .. } | SourceFile::FromHeader { ref cpp_file, .. } => {
             if ! config.no_cache && ! config.force_recache {
-                if let Some(cmd) = try!(Cmd::from_cache(&cpp_file)) {
+                if let Some(cmd) = Cmd::from_cache(&cpp_file)? {
                     return Ok(cmd);
                 }
             }
 
-            let cmd = try!(Cmd::from_databases(&cpp_file, &config.db_files));
+            let cmd = Cmd::from_databases(&cpp_file, &config.db_files)?;
             if ! config.no_cache {
-                try!(cmd.write_to_cache());
+                cmd.write_to_cache()?;
             }
 
             Ok(cmd)

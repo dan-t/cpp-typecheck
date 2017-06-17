@@ -25,27 +25,27 @@ pub struct Cmd {
 
 impl Cmd {
     pub fn from_cache(cpp_file: &Path) -> CtResult<Option<Cmd>> {
-        let cache_dir = try!(cmd_cache_dir());
+        let cache_dir = cmd_cache_dir()?;
         let cache_file = cache_dir.join(compute_hash(cpp_file));
         if ! cache_file.is_file() {
             return Ok(None);
         }
 
-        let mut file = try!(File::open(cache_file));
+        let mut file = File::open(cache_file)?;
         let mut cmd_str = String::new();
-        try!(file.read_to_string(&mut cmd_str));
+        file.read_to_string(&mut cmd_str)?;
         let mut lines = cmd_str.lines();
 
-        let dir = PathBuf::from(try!(lines.next()
-            .ok_or(format!("Expected directory in first line of string:\n{}", cmd_str))));
+        let dir = PathBuf::from(lines.next()
+            .ok_or(format!("Expected directory in first line of string:\n{}", cmd_str))?);
 
-        let cmd = String::from(try!(lines.next()
-            .ok_or(format!("Expected command in second line of string:\n{}", cmd_str))));
+        let cmd = String::from(lines.next()
+            .ok_or(format!("Expected command in second line of string:\n{}", cmd_str))?);
 
-        try!((! cmd.is_empty()).ok_or(format!("Unexpected empty command in: {}!", cmd_str)));
+        (! cmd.is_empty()).ok_or(format!("Unexpected empty command in: {}!", cmd_str))?;
 
-        let file = PathBuf::from(try!(lines.next()
-            .ok_or(format!("Expected file in third line of string:\n{}", cmd_str))));
+        let file = PathBuf::from(lines.next()
+            .ok_or(format!("Expected file in third line of string:\n{}", cmd_str))?);
 
         Ok(Some(Cmd { directory: dir, command: cmd, file: file }))
     }
@@ -53,16 +53,16 @@ impl Cmd {
     pub fn from_databases(cpp_file: &Path, db_files: &[PathBuf]) -> CtResult<Cmd> {
         let mut file_buffer = String::new();
         for db_file in db_files {
-            let mut file = try!(File::open(db_file));
+            let mut file = File::open(db_file)?;
             file_buffer.clear();
-            try!(file.read_to_string(&mut file_buffer));
+            file.read_to_string(&mut file_buffer)?;
 
-            let json_value: Value = try!(serde_json::from_str(&file_buffer));
-            let objs = try!(json_value.as_array().ok_or(format!("Expected a json array but got: '{}'", json_value)));
+            let json_value: Value = serde_json::from_str(&file_buffer)?;
+            let objs = json_value.as_array().ok_or(format!("Expected a json array but got: '{}'", json_value))?;
 
             for obj in objs {
-                let obj = try!(obj.as_object().ok_or(format!("Expected a json object but got: '{}'", obj)));
-                let cmd = try!(Cmd::from_json_obj(obj));
+                let obj = obj.as_object().ok_or(format!("Expected a json object but got: '{}'", obj))?;
+                let cmd = Cmd::from_json_obj(obj)?;
                 if cmd.has_cpp_file(cpp_file) {
                     return Ok(cmd);
                 }
@@ -74,12 +74,12 @@ impl Cmd {
     }
 
     fn from_json_obj(obj: &Map<String, Value>) -> CtResult<Cmd> {
-        let dir = PathBuf::from(try!(obj.get("directory").and_then(Value::as_str)
-            .ok_or(format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj))));
+        let dir = PathBuf::from(obj.get("directory").and_then(Value::as_str)
+            .ok_or(format!("Couldn't find string entry 'directory' in json object: '{:?}'", obj))?);
 
         let file = {
-            let f = PathBuf::from(try!(obj.get("file").and_then(Value::as_str)
-                .ok_or(format!("Couldn't find string entry 'file' in json object: '{:?}'", obj))));
+            let f = PathBuf::from(obj.get("file").and_then(Value::as_str)
+                .ok_or(format!("Couldn't find string entry 'file' in json object: '{:?}'", obj))?);
 
             if f.is_relative() {
                 dir.join(f)
@@ -88,24 +88,23 @@ impl Cmd {
             }
         };
 
-        let cmd = String::from(try!(obj.get("command").and_then(Value::as_str)
-            .ok_or(format!("Couldn't find string entry 'command' in json object: '{:?}'", obj))))
+        let cmd = String::from(obj.get("command").and_then(Value::as_str)
+            .ok_or(format!("Couldn't find string entry 'command' in json object: '{:?}'", obj))?)
             .replace("\\", "");
 
         Ok(Cmd { directory: dir, command: cmd, file: file })
     }
 
     pub fn write_to_cache(&self) -> CtResult<()> {
-        let cache_dir = try!(cmd_cache_dir());
+        let cache_dir = cmd_cache_dir()?;
         let cache_file = cache_dir.join(compute_hash(&self.file));
 
-        try!(AtomicFile::new(cache_file, AllowOverwrite)
-             .write(|f| {
-                 f.write_fmt(format_args!("{}\n{}\n{}",
-                             self.directory.to_string_lossy(),
-                             self.command,
-                             self.file.to_string_lossy()))
-        }));
+        AtomicFile::new(cache_file, AllowOverwrite).write(|f| {
+            f.write_fmt(format_args!("{}\n{}\n{}",
+                        self.directory.to_string_lossy(),
+                        self.command,
+                        self.file.to_string_lossy()))
+        })?;
 
         Ok(())
     }
@@ -139,7 +138,7 @@ impl Cmd {
     fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
         let mut parts = self.command.split(" ");
 
-        let db_compiler = try!(parts.next().ok_or("Unexpected empty parts after command string split!"));
+        let db_compiler = parts.next().ok_or("Unexpected empty parts after command string split!")?;
         let used_compiler = compiler.unwrap_or(db_compiler);
 
         let mut cmd = Command::new(&used_compiler);
@@ -157,8 +156,7 @@ impl Cmd {
             cmd.arg("-fsyntax-only");
         }
 
-        try!(cmd.status()
-            .map_err(|e| format!("Command execution failed: {}, because: {}", self.command, e)));
+        cmd.status().map_err(|e| format!("Command execution failed: {}, because: {}", self.command, e))?;
 
         Ok(())
     }

@@ -69,7 +69,7 @@ pub struct Config {
 
 impl Config {
    pub fn from_command_args() -> CtResult<Config> {
-       let matches = try!(App::new("cpp-typecheck")
+       let matches = App::new("cpp-typecheck")
            .about("Type check a C++ source file with a clang compilation database")
            .version(crate_version!())
            .author("Daniel Trstenjak <daniel.trstenjak@gmail.com>")
@@ -95,26 +95,26 @@ impl Config {
                .help("The clang compilation database")
                .index(2)
                .multiple(true))
-           .get_matches_safe());
+           .get_matches_safe()?;
 
-       let src_file = PathBuf::from(try!(matches.value_of("SOURCE-FILE").ok_or("Missing C++ source file!")));
-       try!(src_file.is_absolute().ok_or(format!("C++ source file '{}' has to have an absolute path!",
-                                         src_file.display())));
+       let src_file = PathBuf::from(matches.value_of("SOURCE-FILE").ok_or("Missing C++ source file!")?);
+       src_file.is_absolute().ok_or(format!("C++ source file '{}' has to have an absolute path!",
+                                    src_file.display()))?;
 
        let db_files: Vec<PathBuf> = {
            if let Some(values) = matches.values_of("CLANG-DB") {
                values.map(PathBuf::from).collect()
            } else {
-               let dir = try!(src_file.parent()
-                  .ok_or(format!("Couldn't get directory of source file '{}'!", src_file.display())));
+               let dir = src_file.parent()
+                  .ok_or(format!("Couldn't get directory of source file '{}'!", src_file.display()))?;
 
-               vec![try!(find_db(&dir))]
+               vec![find_db(&dir)?]
            }
        };
 
-       try!((! db_files.is_empty()).ok_or("Missing clang compilation database!"));
+       (! db_files.is_empty()).ok_or("Missing clang compilation database!")?;
 
-       let source_file = try!(get_source_file(&src_file, &db_files));
+       let source_file = get_source_file(&src_file, &db_files)?;
 
        let config = Config {
            compiler: matches.value_of("compiler").map(String::from),
@@ -124,7 +124,7 @@ impl Config {
            force_recache: matches.is_present("force-recache")
        };
 
-       try!(config.check());
+       config.check()?;
        Ok(config)
    }
 
@@ -134,11 +134,11 @@ impl Config {
                let compiler = if let Some(ref c) = self.compiler {
                    c
                } else {
-                   try!(command.get_compiler())
+                   command.get_compiler()?
                };
 
-               try!(has_only_type_checking_flag(compiler)
-                    .ok_or(format!("Unsupported compiler '{}' for type checking a header without a C++ source file!", compiler)));
+               has_only_type_checking_flag(compiler)
+                   .ok_or(format!("Unsupported compiler '{}' for type checking a header without a C++ source file!", compiler))?;
            },
 
            _ => ()
@@ -166,8 +166,8 @@ fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
             }
         }
 
-        try!(dir.pop().ok_or(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
-                                     start_dir.display())));
+        dir.pop().ok_or(format!("Couldn't find 'compile_commands.json' starting at directory '{}'!",
+                                start_dir.display()))?;
     }
 }
 
@@ -208,10 +208,10 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
     // source file with a temporary created source file that only
     // includes the header file
     {
-        let src_dir = try!(src_file.parent()
-            .ok_or(format!("Couldn't get directory of source file '{}'!", src_file.display())));
+        let src_dir = src_file.parent()
+            .ok_or(format!("Couldn't get directory of source file '{}'!", src_file.display()))?;
 
-        for file in try!(src_dir.read_dir()) {
+        for file in src_dir.read_dir()? {
             if let Ok(file) = file {
                 let file = file.path();
                 if ! file.is_file() {
@@ -223,12 +223,12 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
                 }
 
                 if let Ok(cmd) = Cmd::from_databases(&file, db_files) {
-                    let mut cpp_file = try!(NamedTempFileOptions::new()
+                    let mut cpp_file = NamedTempFileOptions::new()
                         .prefix("cpp-typecheck-")
                         .suffix(".cpp")
-                        .create());
+                        .create()?;
 
-                    try!(cpp_file.write_fmt(format_args!("#include \"{}\"\n", src_file.display())));
+                    cpp_file.write_fmt(format_args!("#include \"{}\"\n", src_file.display()))?;
                     let cmd = cmd.replace_cpp_file(&cpp_file.path());
 
                     return Ok(SourceFile::FromHeaderWithTmpSource {

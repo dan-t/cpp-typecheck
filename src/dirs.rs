@@ -17,7 +17,7 @@ pub fn cmd_cache_dir() -> CtResult<&'static Path> {
     match *CMD_CACHE_DIR {
         Ok(ref dir) => {
             if ! dir.is_dir() {
-                try!(fs::create_dir_all(&dir));
+                fs::create_dir_all(&dir)?;
             }
 
             Ok(dir)
