@@ -1,7 +1,9 @@
 use std::io::Error as IoError;
+use std::fmt::Display;
 use serde_json::Error as SerdeError;
 use clap::Error as ClapError;
 use tempfile;
+use atomicwrites;
 
 /// the result type used for the whole application
 pub type CtResult<T> = Result<T, CtError>;
@@ -18,6 +20,12 @@ error_type! {
             from (ce: ClapError) ce.to_string();
             from (pe: tempfile::PersistError) pe.to_string();
         },
+    }
+}
+
+impl<E: Display> From<atomicwrites::Error<E>> for CtError {
+    fn from(err: atomicwrites::Error<E>) -> CtError {
+        CtError::Msg(format!("{}", err))
     }
 }
 
