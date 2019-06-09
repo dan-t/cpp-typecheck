@@ -3,6 +3,7 @@
 extern crate serde_json;
 extern crate tempfile;
 extern crate atomicwrites;
+extern crate dirs as extern_dirs;
 
 #[macro_use]
 extern crate error_type;
