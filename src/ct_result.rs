@@ -8,7 +8,7 @@ use atomicwrites;
 /// the result type used for the whole application
 pub type CtResult<T> = Result<T, CtError>;
 
-/// the error type used for the whole application
+// the error type used for the whole application
 error_type! {
     #[derive(Debug, Clone)]
     pub enum CtError {
