@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::Write;
 use clap::{App, Arg};
-use tempfile::{NamedTempFile, NamedTempFileOptions};
+use tempfile::{NamedTempFile, Builder};
 use ct_result::{CtResult, OkOr};
 use cmd::{Cmd, has_only_type_checking_flag};
 
@@ -223,10 +223,10 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
                 }
 
                 if let Ok(cmd) = Cmd::from_databases(&file, db_files) {
-                    let mut cpp_file = NamedTempFileOptions::new()
+                    let mut cpp_file = Builder::new()
                         .prefix("cpp-typecheck-")
                         .suffix(".cpp")
-                        .create()?;
+                        .tempfile()?;
 
                     cpp_file.write_fmt(format_args!("#include \"{}\"\n", src_file.display()))?;
                     let cmd = cmd.replace_cpp_file(&cpp_file.path());
