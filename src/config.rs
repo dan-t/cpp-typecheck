@@ -112,7 +112,7 @@ impl Config {
            }
        };
 
-       (! db_files.is_empty()).ok_or("Missing clang compilation database!")?;
+       (!db_files.is_empty()).ok_or("Missing clang compilation database!")?;
 
        let source_file = get_source_file(&src_file, &db_files)?;
 
@@ -179,7 +179,7 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
         true
     };
 
-    if ! is_header_file {
+    if !is_header_file {
         return Ok(SourceFile::FromArg { cpp_file: src_file.to_path_buf() });
     }
 
@@ -214,11 +214,11 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
         for file in src_dir.read_dir()? {
             if let Ok(file) = file {
                 let file = file.path();
-                if ! file.is_file() {
+                if !file.is_file() {
                     continue;
                 }
 
-                if ! is_cpp_source_file(&file) {
+                if !is_cpp_source_file(&file) {
                     continue;
                 }
 

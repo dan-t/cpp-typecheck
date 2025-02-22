@@ -51,14 +51,14 @@ fn get_cmd(config: &Config) -> CtResult<Cmd> {
     let source_file = &config.source_file;
     match *source_file {
         SourceFile::FromArg { ref cpp_file, .. } | SourceFile::FromHeader { ref cpp_file, .. } => {
-            if ! config.no_cache && ! config.force_recache {
+            if !config.no_cache && !config.force_recache {
                 if let Some(cmd) = Cmd::from_cache(&cpp_file)? {
                     return Ok(cmd);
                 }
             }
 
             let cmd = Cmd::from_databases(&cpp_file, &config.db_files)?;
-            if ! config.no_cache {
+            if !config.no_cache {
                 cmd.write_to_cache()?;
             }
 

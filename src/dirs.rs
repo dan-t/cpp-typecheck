@@ -16,7 +16,7 @@ lazy_static! {
 pub fn cmd_cache_dir() -> CtResult<&'static Path> {
     match *CMD_CACHE_DIR {
         Ok(ref dir) => {
-            if ! dir.is_dir() {
+            if !dir.is_dir() {
                 fs::create_dir_all(&dir)?;
             }
 

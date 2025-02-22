@@ -27,7 +27,7 @@ impl Cmd {
     pub fn from_cache(cpp_file: &Path) -> CtResult<Option<Cmd>> {
         let cache_dir = cmd_cache_dir()?;
         let cache_file = cache_dir.join(compute_hash(cpp_file));
-        if ! cache_file.is_file() {
+        if !cache_file.is_file() {
             return Ok(None);
         }
 
@@ -42,7 +42,7 @@ impl Cmd {
         let cmd = String::from(lines.next()
             .ok_or(format!("Expected command in second line of string:\n{}", cmd_str))?);
 
-        (! cmd.is_empty()).ok_or(format!("Unexpected empty command in: {}!", cmd_str))?;
+        (!cmd.is_empty()).ok_or(format!("Unexpected empty command in: {}!", cmd_str))?;
 
         let file = PathBuf::from(lines.next()
             .ok_or(format!("Expected file in third line of string:\n{}", cmd_str))?);
