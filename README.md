@@ -4,7 +4,7 @@
 cpp-typecheck
 =============
 
-A command line tool to type check a C++ source file with a [clang compilation database](http://clang.llvm.org/docs/JSONCompilationDatabase.html). 
+A command line tool to type check or preprocess a C++ source file with a [clang compilation database](http://clang.llvm.org/docs/JSONCompilationDatabase.html). 
 
 `cpp-typecheck` extracts the compiler command for the given source file
 from the database, executes it and outputs the output of the compiler.
@@ -84,6 +84,10 @@ It's also possible to use an other compiler for the type checking than the one d
 in the database, as long as the compiler arguments are compatible (which is the case for gcc and clang):
 
     $> cpp-typecheck  --compiler clang  /absolute_path_to/SomeSource.cpp
+
+To only preprocess a source file:
+
+    $> cpp-typecheck  --preprocess /absolute_path_to/SomeSource.cpp
 
 Text Editor Integration
 -----------------------
