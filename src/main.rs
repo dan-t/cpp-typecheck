@@ -16,8 +16,9 @@ extern crate clap;
 
 use std::io::{Write, stderr};
 use std::process::exit;
+use std::path::PathBuf;
 use ct_result::CtResult;
-use config::{Config, SourceFile};
+use config::{Config, SourceFile, CmdCaching};
 use cmd::Cmd;
 
 #[macro_use]
@@ -37,36 +38,47 @@ fn main() {
 fn execute() -> CtResult<()> {
     let config = Config::from_command_args()?;
     let cmd = get_cmd(&config)?;
-
-    if let Some(ref compiler) = config.compiler {
-        cmd.exec_with(&compiler)?;
+    if config.preprocess {
+        cmd.preprocess(&config.compiler)
     } else {
-        cmd.exec()?;
+        cmd.typecheck(&config.compiler)
     }
-
-    Ok(())
 }
 
 fn get_cmd(config: &Config) -> CtResult<Cmd> {
     let source_file = &config.source_file;
     match *source_file {
         SourceFile::FromArg { ref cpp_file, .. } | SourceFile::FromHeader { ref cpp_file, .. } => {
-            if !config.no_cache && !config.force_recache {
-                if let Some(cmd) = Cmd::from_cache(&cpp_file)? {
-                    return Ok(cmd);
-                }
-            }
+            get_cmd_from_files(cpp_file, &config.db_files, &config.cmd_caching)
+        }
 
-            let cmd = Cmd::from_databases(&cpp_file, &config.db_files)?;
-            if !config.no_cache {
-                cmd.write_to_cache()?;
-            }
-
-            Ok(cmd)
-        },
-
-        SourceFile::FromHeaderWithTmpSource { ref command, .. } => {
-            Ok(command.clone())
+        SourceFile::FromHeaderWithTmpSource { ref temp_cpp_file, ref cmd_cpp_file, .. } => {
+            let cmd = get_cmd_from_files(cmd_cpp_file, &config.db_files, &config.cmd_caching)?;
+            Ok(cmd.replace_cpp_file(temp_cpp_file.path()))
         }
     }
 }
+
+fn get_cmd_from_files(cpp_file: &PathBuf, db_files: &[PathBuf], cmd_caching: &CmdCaching) -> CtResult<Cmd> {
+    match cmd_caching {
+        CmdCaching::None => {
+            Cmd::from_databases(cpp_file, db_files)
+        }
+
+        CmdCaching::Normal => {
+            if let Some(cmd) = Cmd::from_cache(&cpp_file)? {
+                return Ok(cmd);
+            }
+            let cmd = Cmd::from_databases(&cpp_file, db_files)?;
+            cmd.write_to_cache()?;
+            Ok(cmd)
+        }
+
+        CmdCaching::Recache => {
+            let cmd = Cmd::from_databases(&cpp_file, db_files)?;
+            cmd.write_to_cache()?;
+            Ok(cmd)
+        }
+    }
+}
+

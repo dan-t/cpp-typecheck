@@ -122,51 +122,68 @@ impl Cmd {
         }
     }
 
-    pub fn exec(&self) -> CtResult<()> {
-        self.exec_internal(None)
-    }
-
-    pub fn exec_with(&self, compiler: &str) -> CtResult<()> {
-        self.exec_internal(Some(compiler))
-    }
-
-    pub fn get_compiler(&self) -> CtResult<&str> {
-        let mut parts = self.command.split(" ");
-        parts.next().ok_or(format!("Unexpected empty parts after command split of: {}!", self.command).into())
-    }
-
-    fn exec_internal(&self, compiler: Option<&str>) -> CtResult<()> {
-        let mut parts = self.command.split(" ");
-
-        let db_compiler = parts.next().ok_or("Unexpected empty parts after command string split!")?;
-        let used_compiler = compiler.unwrap_or(db_compiler);
-
-        let mut cmd = Command::new(&used_compiler);
-        cmd.current_dir(&self.directory);
-
-        for p in parts {
-            if p.is_empty() {
-                continue;
-            }
-
-            cmd.arg(p);
+    pub fn typecheck(&self, compiler: &Option<String>) -> CtResult<()> {
+        let (mut command, used_compiler) = self.get_command(compiler)?;
+        if let Some(flag) = get_typecheck_flag(&used_compiler) {
+            command.arg(flag);
         }
-
-        if is_gcc_or_clang_compiler(used_compiler) {
-            cmd.arg("-fsyntax-only");
-        }
-
-        cmd.status().map_err(|e| format!("Command execution failed: {}, because: {}", self.command, e))?;
-
+        command.status().map_err(|e| format!("Command execution failed: {}, because: {}", self.command, e))?;
         Ok(())
     }
+
+    pub fn preprocess(&self, compiler: &Option<String>) -> CtResult<()> {
+        let (mut command, used_compiler) = self.get_command(compiler)?;
+        if let Some(flag) = get_preprocess_flag(&used_compiler) {
+            command.arg(flag);
+            command.status().map_err(|e| format!("Command execution failed: {}, because: {}", self.command, e))?;
+            Ok(())
+        } else {
+            Err(format!("Unsupported compiler {} for preprocessing", used_compiler).into())
+        }
+    }
+
+    fn get_command(&self, compiler: &Option<String>) -> CtResult<(Command, String)> {
+        let mut args = self.command.split(" ");
+        let db_compiler = args.next().ok_or("Unexpected empty arguments after command string split!")?;
+        let used_compiler = if let Some(ref c) = compiler {
+            c.clone()
+        } else {
+            db_compiler.to_string()
+        };
+
+        let mut command = Command::new(&used_compiler);
+        command.current_dir(&self.directory);
+
+        while let Some(arg) = args.next() {
+            if arg == "-o" {
+                // remove the file argument
+                args.next();
+            } else if !arg.is_empty() {
+                command.arg(arg);
+            }
+        }
+
+        Ok((command, used_compiler))
+    }
 }
 
-pub fn has_only_type_checking_flag(compiler: &str) -> bool {
-    is_gcc_or_clang_compiler(compiler)
+fn get_typecheck_flag(compiler: &str) -> Option<&str> {
+    if is_gcc_or_clang(compiler) {
+        Some("-fsyntax-only")
+    } else {
+        None
+    }
 }
 
-fn is_gcc_or_clang_compiler(compiler: &str) -> bool {
+fn get_preprocess_flag(compiler: &str) -> Option<&str> {
+    if is_gcc_or_clang(compiler) {
+        Some("-E")
+    } else {
+        None
+    }
+}
+
+fn is_gcc_or_clang(compiler: &str) -> bool {
     compiler.contains("gcc")
         || compiler.contains("g++")
         || compiler.contains("clang")

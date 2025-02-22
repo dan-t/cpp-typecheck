@@ -4,7 +4,6 @@ use std::io::Write;
 use clap::{App, Arg};
 use tempfile::{NamedTempFile, Builder};
 use ct_result::{CtResult, OkOr};
-use cmd::{Cmd, has_only_type_checking_flag};
 
 #[derive(Debug)]
 pub enum SourceFile {
@@ -24,13 +23,12 @@ pub enum SourceFile {
     /// a header file was given as argument and no
     /// source file could be found, so a temporary
     /// one was created that just includes the header,
-    /// a compiler command was created by taking the
-    /// arguments of an other source file in the same
-    /// directory
+    /// the compiler command will be taken from an
+    /// other source file in the same directory
     FromHeaderWithTmpSource {
         header_file: PathBuf,
-        cpp_file: NamedTempFile,
-        command: Cmd
+        temp_cpp_file: NamedTempFile,
+        cmd_cpp_file: PathBuf
     }
 }
 
@@ -42,6 +40,21 @@ impl SourceFile {
             SourceFile::FromHeaderWithTmpSource { ref header_file, .. } => header_file.as_path()
         }
     }
+}
+
+#[derive(Debug)]
+pub enum CmdCaching {
+    /// forces the lookup in the database without considering
+    /// the command cache and doesn't cache the lookup result
+    None,
+
+    /// uses the command cache and caches the lookup result
+    /// in the database
+    Normal,
+
+    /// forces the recaching of the command by doing the lookup
+    /// in the database
+    Recache
 }
 
 /// the configuration used to run `cpp-typecheck`
@@ -58,13 +71,10 @@ pub struct Config {
     /// the C++ source file
     pub db_files: Vec<PathBuf>,
 
-    /// forces the lookup in the database without considering
-    /// the command cache
-    pub no_cache: bool,
+    pub cmd_caching: CmdCaching,
 
-    /// forces the recaching of the command by doing the lookup
-    /// in the database
-    pub force_recache: bool
+    /// only preprocess the source file
+    pub preprocess: bool
 }
 
 impl Config {
@@ -87,6 +97,10 @@ impl Config {
                 .short("f")
                 .long("force-recache")
                 .help("Forces the recaching of the command by doing the lookup in the database"))
+           .arg(Arg::with_name("preprocess")
+                .short("p")
+                .long("preprocess")
+                .help("Only preprocess the source file"))
            .arg(Arg::with_name("SOURCE-FILE")
                .help("The C++ source file to type check")
                .required(true)
@@ -114,37 +128,23 @@ impl Config {
 
        (!db_files.is_empty()).ok_or("Missing clang compilation database!")?;
 
-       let source_file = get_source_file(&src_file, &db_files)?;
+       let source_file = get_source_file(&src_file)?;
+       let mut cmd_caching = CmdCaching::Normal;
+       if matches.is_present("no-cache") {
+           cmd_caching = CmdCaching::None;
+       } else if matches.is_present("force-recache") {
+           cmd_caching = CmdCaching::Recache;
+       }
 
        let config = Config {
            compiler: matches.value_of("compiler").map(String::from),
            source_file: source_file,
            db_files: db_files,
-           no_cache: matches.is_present("no-cache"),
-           force_recache: matches.is_present("force-recache")
+           cmd_caching: cmd_caching,
+           preprocess: matches.is_present("preprocess")
        };
 
-       config.check()?;
        Ok(config)
-   }
-
-   fn check(&self) -> CtResult<()> {
-       match self.source_file {
-           SourceFile::FromHeaderWithTmpSource { ref command, .. } => {
-               let compiler = if let Some(ref c) = self.compiler {
-                   c
-               } else {
-                   command.get_compiler()?
-               };
-
-               has_only_type_checking_flag(compiler)
-                   .ok_or(format!("Unsupported compiler '{}' for type checking a header without a C++ source file!", compiler))?;
-           },
-
-           _ => ()
-       };
-
-       Ok(())
    }
 }
 
@@ -171,7 +171,7 @@ fn find_db(start_dir: &Path) -> CtResult<PathBuf> {
     }
 }
 
-fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile> {
+fn get_source_file(src_file: &Path) -> CtResult<SourceFile> {
     let is_header_file = if let Some(ext) = src_file.extension() {
         HEADER_EXTENSIONS.iter().any(|he| *he == ext)
     } else {
@@ -222,21 +222,17 @@ fn get_source_file(src_file: &Path, db_files: &[PathBuf]) -> CtResult<SourceFile
                     continue;
                 }
 
-                if let Ok(cmd) = Cmd::from_databases(&file, db_files) {
-                    let mut cpp_file = Builder::new()
-                        .prefix("cpp-typecheck-")
-                        .suffix(".cpp")
-                        .tempfile()?;
+                let mut temp_cpp_file = Builder::new()
+                    .prefix("cpp-typecheck-")
+                    .suffix(".cpp")
+                    .tempfile()?;
 
-                    cpp_file.write_fmt(format_args!("#include \"{}\"\n", src_file.display()))?;
-                    let cmd = cmd.replace_cpp_file(&cpp_file.path());
-
-                    return Ok(SourceFile::FromHeaderWithTmpSource {
-                        header_file: src_file.to_path_buf(),
-                        cpp_file: cpp_file,
-                        command: cmd
-                    });
-                }
+                temp_cpp_file.write_fmt(format_args!("#include \"{}\"\n", src_file.display()))?;
+                return Ok(SourceFile::FromHeaderWithTmpSource {
+                    header_file: src_file.to_path_buf(),
+                    temp_cpp_file: temp_cpp_file,
+                    cmd_cpp_file: file
+                });
             }
         }
     }
