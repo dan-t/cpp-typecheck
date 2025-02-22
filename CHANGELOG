@@ -1,3 +1,7 @@
+0.6.0
+-----
+* Add option --preprocess to only preprocess the source file
+
 0.5.0
 -----
 * Upgrading dependencies
